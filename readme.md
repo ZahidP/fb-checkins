@@ -1,23 +1,23 @@
 ## Facebook Checkin Predictions
 
+### Data
+- ~27 million rows
+- Features: X, Y, Accuracy, Time
+- Outcome Variable: Place Id
 
-
-### Thoughts on Attributes of the Problem
-First off, we are dealing with a highly multiclass classification problem. In this case,
+We are dealing with a highly multi-class classification problem. In this case,
 (without breaking it up into subproblems) we would have one vs MANY classification (one vs x hundred-thousand).
 
 #### Breaking Down the Problem
 So one of our first challenges is to make this more manageable by breaking it down in a meaningful way.
-**Grid**
-The first, and perhaps most intuitive way, is to break down the problem as a grid. This is because we understand that x,y coordinates are somewhat of a natural cutoff for certain locations. Although, certain place_ids, may appear in multiple locations (maybe due to multiple locations or just mistakes in checking in). But I'm going to go out on a limb here and say that initially we can fairly assume that location plays a very important part in where you have checked into.
-**Time**
-We can perhaps further subset the problem by time. Day of the week, hour etc.
-**Accuracy**
-Again, we may find that problems of accuracy less than a certain cutoff require an entirely different model than those with higher accuracy.
-**Number of Occurrences**
-We have filtered out any places that have appeared 3 or less times from the dataset of 15 million.
-Perhaps a different model can be trained on these infrequent places. Otherwise we are resigned to getting these wrong.
--- Nevermind this is stupid, the test set obviously can't capture this information.
+- **Grid**
+   - The first, and perhaps most intuitive way, is to break down the problem as a grid. This is because we understand that x,y coordinates are somewhat of a natural cutoff for certain locations. Although, certain place_ids, may appear in multiple locations (maybe due to multiple locations or just mistakes in checking in). But I'm going to go out on a limb here and say that initially we can fairly assume that location plays a very important part in where you have checked into.
+- **Time**
+   - We can perhaps further subset the problem by time. Day of the week, hour etc.
+- **Accuracy**
+   - Again, we may find that problems of accuracy less than a certain cutoff require an entirely different model than those with higher accuracy.
+- **Number of Occurrences**
+   - We have filtered out any places that have appeared 3 or less times from the dataset of 15 million.
 
 Now, in terms of decision trees and random forests, we see that our classifier is kind of doing this anyway. So once our problem is broken down to a manageable size, it may not be necessary to subset the problem further, since this information may be captured by our model.
 
@@ -40,10 +40,9 @@ What it isn't doing, however, is training an entirely different model (per tree 
 #### Analyzing Misclassified Results
 
 **Method**
-We will run a quick training model on < 150,000 rows (at certain grid locations) to get an idea on which rows we are misclassifying.
+   - We will run a quick training model on < 150,000 rows (at certain grid locations) to get an idea on which rows we are misclassifying.
 
-From there, we will store the _row_id_ and the _place_id_. That's really all the information we need to do a lookup from the original dataframe
-(We actually don't need the place_id but it's nice to have for a quick initial diagnostic if we don't want to look up every misclassified row.)
+   - From there, we will store the _row_id_ and the _place_id_. That's really all the information we need to do a lookup from the original dataframe. (We actually don't need the place_id but it's nice to have for a quick initial diagnostic if we don't want to look up every misclassified row.)
 
 
 
@@ -115,4 +114,6 @@ None of these really seemed to be telling about why anything was misclassified. 
 #### Further Analysis
 Naturally, I looked through forums to get a better understanding of other's approaches and of where I may have gone wrong or fallen short. Particularly, I liked the blog post by the competition's 2nd place winner linked here: http://blog.kaggle.com/2016/08/02/facebook-v-predicting-check-ins-winners-interview-2nd-place-markus-kliegl/
 
-In that post, Markus Kliegl discusses the use of a Naive Bayes Classifier and some of the data exploration and results he encountered. One interesting pattern in the data was the seasonality of checkins per place id. I actually didn't plot seasonality of place checkins and missed that concept during my model building process. Of course I introduced hour, day of year, and other time variables to the random forest and assumed that it would make the best possible decision at each split (factoring in seasonal behavior) but there could only be so much time-based granularity involved there (even with very deep decision trees). In the end, knowing more about using Naive Bayes Classifiers might have been useful, especially because there were so many possible place_ids and the decision tree/random forest approach would likely only have predicted the relatively frequent place_ids. The catch, however, is that implementing the Naive Bayes Classifier would require a reasonably large about of preprocessing and more of a supervised approach. Still, I think it would have been an interesting way to go about solving the problem.
+In that post, Markus Kliegl discusses the use of a Naive Bayes Classifier and some of the data exploration and results he encountered. One interesting pattern in the data was the seasonality of checkins per place id. I actually didn't plot seasonality of place checkins and missed that concept during my model building process. Of course I introduced hour, day of year, and other time variables to the random forest and assumed that it would make the best possible decision at each split (factoring in seasonal behavior) but there could only be so much time-based granularity involved there (even with very deep decision trees).
+
+In the end, having stronger knowledge about using Naive Bayes Classifiers might have been useful, especially because there were so many possible place_ids and the decision tree/random forest approach would likely only have predicted the relatively frequent place_ids. The catch, however, is that implementing the Naive Bayes Classifier would require a reasonably large about of preprocessing and more of a supervised approach. Still, I think it would have been an interesting way to go about solving the problem.
