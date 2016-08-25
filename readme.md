@@ -1,74 +1,10 @@
 ## Facebook Checkin Predictions
 
-### Sample Workflow
-
-
-#### Post Analysis
-
-**Steps**
-- Fit Random Forests on 20x20 grid, with 100,000 rows
-   - Average the feature importances
-   - Average prediction accuracy per grid
-   - Look at misclassified rows
-      - avg x,y accuracy
-      - avg samples in grid --> misclassified heatmap/2d histogram
-      - most common place_ids that were misclassified
-      - take all of the misclassified row ids
-         - run some sort of clustering algorithm on them
-         - we can break them into groups
-      - think about this:
-         - we have certain misclassified rows that have certain attributes, but maybe
-           our main concern should be with a well-classified nearby place (that may be)
-           causing the model to mess up. This of course will not show up as a particular
-           "attribute" under the clustering of misclassified rows.
-- Histograms
-  - value counts...everything
-
-- Extra variables
-   - avg dist to others / grid location density
-      - although, we technically do this by fitting so many random forests
-   - time -> day, hr
-   - grids --> districts
-   - maybe it's more meaningful to split the dataset by time or accuracy
-
-**Plot and Print Diagnostics**
-`results = ut.train_and_predict(40, 0, 1, 'bottomleft', 250, 7, True)
-plt.plot(results[1][0:1000])
-plt.show()
-a = ['row_id', 'x', 'y', 'accuracy', 'day', 'hr','day_of_year']
-
-avg_importances = []
-avg_importances = [x.feature_importances_ for x in models]
-[list(x) for x in avg_importances]
-avg_imp = [list(x) for x in avg_importances]
-avgimp = list(map(list, zip(*avg_imp)))
-average_importances = [np.average(x) for x in avgimp]
-
----------
-
-a = ['x', 'y', 'accuracy', 'day', 'hr', 'day_of_year']
-left_bar = list(range(0,6))
-left_bar = [x/10 for x in left_bar]
-fig, ax = plt.subplots()
-ax.bar(left_bar, importances, width=0.08)
-ax.set_title('Feature Importances')
-ax.set_title('Accuracy: Correct vs Incorrect')
-ax.set_xticklabels(a)
-import time
-tstamp = time.localtime()
-tstamp = str(tstamp.tm_mon) + '-' + str(tstamp.tm_mday) + '-' + str(tstamp.tm_min)
-plt.savefig('../visualizations/hr-counts-topleft-' + tstamp + '.png')
-
-plt.savefig('../visualizations/feature-importances-' + tstamp + '.png')
-plt.show()`
-
-
---------------
 
 
 ### Thoughts on Attributes of the Problem
 First off, we are dealing with a highly multiclass classification problem. In this case,
-(without breaking it up into subproblems) we would have one vs MANY classification (one vs x million).
+(without breaking it up into subproblems) we would have one vs MANY classification (one vs x hundred-thousand).
 
 #### Breaking Down the Problem
 So one of our first challenges is to make this more manageable by breaking it down in a meaningful way.
@@ -85,21 +21,20 @@ Perhaps a different model can be trained on these infrequent places. Otherwise w
 
 Now, in terms of decision trees and random forests, we see that our classifier is kind of doing this anyway. So once our problem is broken down to a manageable size, it may not be necessary to subset the problem further, since this information may be captured by our model.
 
-What it isn't doing, however, is training an entirely different model. We may find this useful and will investigate further upon analyzing misclassified results.
+What it isn't doing, however, is training an entirely different model (per tree level). We may find this useful and will investigate further upon analyzing misclassified results.
 
-**Outcome**
-We opted initially for the grid approach.
 
 #### Variable Creation
 
-**X**
-**Y**
-**Accuracy**
-**Time**
+- **X**
+- **Y**
+- **X/Y and X*Y**
+- **Accuracy**
+- **Time**
    - **Hr**
-   - **Day**
-**Block Density**
-
+   - **Day of Week**
+   - **Day of Year**
+   - **Month**
 
 
 #### Analyzing Misclassified Results
@@ -115,6 +50,7 @@ From there, we will store the _row_id_ and the _place_id_. That's really all the
 #### Performance
 *Some performance results within each loop*
 
+```
 Removes singles: 0.002156972885131836seconds
 Subset dataset: 0.0010998249053955078seconds
 Sort probabilities: 0.00013184547424316406seconds
@@ -140,6 +76,7 @@ Sort probabilities: 0.0002689361572265625seconds
 Predict and sort: 0.10912394523620605seconds
 Misclassified: 2.5987625122070312e-05seconds
 Time: 12.555937051773071 seconds
+```
 
 ### Final Results
 I ended up placing somewhere in the middle of the pack.
@@ -147,7 +84,8 @@ I ended up placing somewhere in the middle of the pack.
 First of all, we had model tuning results. These models were examined manually for the most part. Some of these results are:
 
 *For kNN*
-`Fitting 2 folds for each of 3 candidates, totalling 6 fits
+```
+Fitting 2 folds for each of 3 candidates, totalling 6 fits
 [Parallel(n_jobs=2)]: Done   6 out of   6 | elapsed:  1.2min finished
 Best parameters set found on development set:
 {'weights': 'distance', 'n_neighbors': 10, 'metric': 'manhattan'}
@@ -155,16 +93,19 @@ Grid scores on development set:
 0.605 (+/-0.010) for {'weights': 'distance', 'n_neighbors': 10, 'metric': 'manhattan'}
 0.602 (+/-0.010) for {'weights': 'distance', 'n_neighbors': 12, 'metric': 'manhattan'}
 0.601 (+/-0.011) for {'weights': 'distance', 'n_neighbors': 14, 'metric': 'manhattan'}
-Detailed classification report:`
+Detailed classification report:
+```
 
 *Or similarly for random forests*
-`Best parameters set found on development set:
+```
+Best parameters set found on development set:
 {'n_estimators': 400, 'max_depth': 8}
 Grid scores on development set:
 0.402 (+/-0.056) for {'n_estimators': 300, 'max_depth': 6}
 0.441 (+/-0.047) for {'n_estimators': 300, 'max_depth': 7}
 0.438 (+/-0.059) for {'n_estimators': 400, 'max_depth': 7}
-0.450 (+/-0.044) for {'n_estimators': 400, 'max_depth': 8}`
+0.450 (+/-0.044) for {'n_estimators': 400, 'max_depth': 8}
+```
 
 (Although it doesn't show it above, random forests actually performed better)
 
